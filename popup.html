@@ -6,28 +6,389 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Code Generator</title>
     <script src="qrcode.min.js"></script>
+    <script src="helper.js"></script>
     <script src="popup.js" defer></script>
     <style>
+        :root {
+            --primary-color: #4a6cf7;
+            --secondary-color: #f5f7ff;
+            --text-color: #333;
+            --accent-color: #0a2540;
+            --border-radius: 8px;
+            --background-color: #fff;
+            --card-background: #f5f7ff;
+            --input-background: #fff;
+            --input-border: #ddd;
+        }
+
         body {
-            width: 250px;
-            text-align: center;
-            font-family: Arial, sans-serif;
+            width: 350px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 16px;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+
+        body.dark-mode {
+            --primary-color: #4a6cf7;
+            --secondary-color: #1e2937;
+            --text-color: #e5e7eb;
+            --accent-color: #60a5fa;
+            --background-color: #111827;
+            --card-background: #1f2937;
+            --input-background: #374151;
+            --input-border: #4b5563;
+        }
+
+        .container {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            background-color: var(--card-background);
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         h2 {
+            margin: 0;
             font-size: 16px;
-            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .content {
+            padding: 16px;
         }
 
         #qrcode {
             margin: 10px auto;
+            background-color: var(--input-background);
+            padding: 12px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+            max-width: 180px;
+            min-height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .url-display {
+            margin-top: 12px;
+            font-size: 12px;
+            word-break: break-all;
+            color: var(--text-color);
+            background-color: var(--input-background);
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid var(--input-border);
+            text-align: left;
+            height: 40px;
+            overflow-y: auto;
+        }
+
+        #url-warning {
+            color: #e74c3c;
+            font-size: 11px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--accent-color);
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .icon {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 0;
+            margin: 0;
+        }
+
+        footer {
+            margin-top: 16px;
+            font-size: 11px;
+            color: #777;
+            text-align: center;
+        }
+
+        .control-group {
+            margin-bottom: 12px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .size-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .size-controls label {
+            font-size: 12px;
+        }
+
+        .size-controls input {
+            width: 60%;
+        }
+
+        .color-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .color-control {
+            flex: 1;
+        }
+
+        .color-control input {
+            width: 100%;
+            height: 30px;
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
+            background-color: var(--input-background);
+        }
+
+        select {
+            width: 100%;
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid var(--input-border);
+            background-color: var(--input-background);
+            color: var(--text-color);
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 10px;
+        }
+
+        .tab {
+            padding: 8px 12px;
+            background-color: var(--input-background);
+            border: 1px solid var(--input-border);
+            cursor: pointer;
+            font-size: 12px;
+            flex: 1;
+            text-align: center;
+        }
+
+        .tab:first-child {
+            border-radius: 4px 0 0 4px;
+        }
+
+        .tab:last-child {
+            border-radius: 0 4px 4px 0;
+        }
+
+        .tab.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        #notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--accent-color);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 100;
+        }
+
+        #notification.show {
+            opacity: 1;
+        }
+
+        #notification.error {
+            background-color: #e74c3c;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 5px;
+        }
+
+        .settings-section {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--input-border);
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .settings-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .small-button {
+            font-size: 11px;
+            padding: 4px 8px;
         }
     </style>
 </head>
 
 <body>
-    <h2>QR Code for this Page</h2>
-    <div id="qrcode"></div>
+    <div class="container">
+        <header>
+            <div class="header-left">
+                <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path fill="currentColor"
+                        d="M3 3h8v8H3V3m2 2v4h4V5H5m8-2h8v8h-8V3m2 2v4h4V5h-4M3 13h8v8H3v-8m2 2v4h4v-4H5m13 0h3v3h-3v-3m0-5h3v3h-3V8m-5 5h3v3h-3v-3m5 5h3v3h-3v-3m-5 0h3v3h-3v-3z" />
+                </svg>
+                <h2>QR Code Generator</h2>
+            </div>
+            <button id="theme-toggle" class="theme-toggle">🌙</button>
+        </header>
+
+        <div class="content">
+            <div class="tabs">
+                <div class="tab active" data-tab="qr-tab">QR Code</div>
+                <div class="tab" data-tab="settings-tab">Settings</div>
+            </div>
+
+            <div id="qr-tab" class="tab-content active">
+                <div id="qrcode"></div>
+                <div class="url-display" id="current-url"></div>
+                <div id="url-warning"></div>
+
+                <div class="actions">
+                    <button id="download">Download</button>
+                    <button id="copy">Copy</button>
+                    <button id="share">Share</button>
+                </div>
+            </div>
+
+            <div id="settings-tab" class="tab-content">
+                <div class="control-group">
+                    <label>QR Code Size</label>
+                    <div class="size-controls">
+                        <input type="range" id="size" min="100" max="300" step="10">
+                        <span id="size-value">150×150</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Colors</label>
+                    <div class="color-controls">
+                        <div class="color-control">
+                            <label>QR Color</label>
+                            <input type="color" id="qr-color" value="#000000">
+                        </div>
+                        <div class="color-control">
+                            <label>Background</label>
+                            <input type="color" id="bg-color" value="#FFFFFF">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Error Correction Level</label>
+                    <select id="error-correction">
+                        <option value="L">Low (7%)</option>
+                        <option value="M">Medium (15%)</option>
+                        <option value="Q">Quartile (25%)</option>
+                        <option value="H" selected>High (30%)</option>
+                    </select>
+                </div>
+
+                <div class="settings-section">
+                    <div class="settings-header">
+                        <h3 class="settings-title">Preferences</h3>
+                        <button id="reset" class="small-button">Reset All</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2025 QR Code Generator. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <div id="notification" class="notification"></div>
 </body>
 
 </html>
